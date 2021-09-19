@@ -37,6 +37,10 @@ contract CrowdFunding {
     _;
   }
 
+  function goalHasBeenReached() public view returns(bool) {
+    return raisedAmount >= goal;
+  }
+
   function createRequest(
     string memory _description,
     address payable _recipient,
@@ -64,7 +68,6 @@ contract CrowdFunding {
 
     contributors[msg.sender] += msg.value;
     raisedAmount += msg.value;
-
     emit ContributeEvent(msg.sender, msg.value);
   }
 
@@ -78,9 +81,8 @@ contract CrowdFunding {
 
   function getRefund() public {
     require(
-      block.timestamp > deadline &&
-      raisedAmount < goal,
-      "Deadline has not passed and raised amount hasnt reach the goal "
+      block.timestamp > deadline && raisedAmount < goal,
+      "Deadline has not passed and raised amount hasnt reach the goal"
     );
     require(contributors[msg.sender] > 0, 'You must be contributor');
 

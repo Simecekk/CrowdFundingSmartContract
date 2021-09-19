@@ -8,7 +8,7 @@ describe("CrowdFunding", function () {
     [admin, addr1, addr2, addr3] = await ethers.getSigners();
     CrowdFunding = await ethers.getContractFactory('CrowdFunding');
     crowdFunding = await CrowdFunding.deploy(
-       ethers.utils.parseEther("0.5"), deadline, admin.address
+       ethers.utils.parseEther("51"), deadline, admin.address
     );
     deploymentBlockNum = (await ethers.provider.getBlockNumber());
   });
@@ -27,11 +27,11 @@ describe("CrowdFunding", function () {
       );
     });
 
-    it('Should set goal to 0.5 ether', async () => {
+    it('Should set goal to 51 ether', async () => {
       expect(
         await crowdFunding.goal()
       ).to.be.equal(
-        ethers.utils.parseEther('0.5')
+        ethers.utils.parseEther('51')
       );
     });
 
@@ -144,4 +144,32 @@ describe("CrowdFunding", function () {
       );
     });
   });
+
+  describe('getRefund function', async() => {
+    it('Should revert when deadline has not passed and goal hasnt been reached', async() => {
+      await expect(
+        crowdFunding.getRefund()
+      ).to.be.revertedWith(
+        'Deadline has not passed and raised amount hasnt reach the goal'
+      );
+    });
+
+    it('Should reveret when you are not the contributor', async() => {
+      await ethers.provider.send('evm_increaseTime', [704800]);
+      await expect(
+        crowdFunding.getRefund()
+      ).to.be.revertedWith(
+        'You must be contributor'
+      );
+    });
+
+    it('Should get refund correctly', async() => {
+      await crowdFunding.contribute({value: ethers.utils.parseEther('50')});
+      await ethers.provider.send('evm_increaseTime', [704800]);
+      await crowdFunding.getRefund();
+    });
+
+  });
+
+
 });
