@@ -45,7 +45,7 @@ describe("CrowdFunding", function () {
 
   });
 
-  describe('createRequest', async() => {
+  describe('createRequest function', async() => {
     it('Only admin should be able to create request', async() => {
       await expect(
         crowdFunding.connect(addr1).createRequest(
@@ -74,7 +74,74 @@ describe("CrowdFunding", function () {
       expect(request.completed).to.be.equal(false);
       expect(request.noOfVoters).to.be.equal(0);
     });
+
+    it('Should emit createRequestEvent', async() => {
+      await expect(
+        crowdFunding.createRequest(
+          'Request description',
+          admin.address,
+          ethers.utils.parseEther('1')
+        )
+      ).to.emit(
+        crowdFunding, 'createRequestEvent'
+      ).withArgs(
+        'Request description',
+        admin.address,
+        ethers.utils.parseEther('1')
+      );
+    });
+
   });
 
+  describe('Contribute function', async() => {
+    it('Contribution is only possible before deadline', async() => {
+      await ethers.provider.send("evm_increaseTime", [704800])
+      await expect(
+        crowdFunding.contribute()
+      ).to.be.revertedWith(
+        'Deadline of campaign has passed'
+      )
+    });
 
+    it('Requires at least minimum contribution', async() => {
+      await expect(
+        crowdFunding.contribute({value: 99})
+      ).to.be.revertedWith(
+        'Minimal ontribution is 100 wei'
+      )
+    });
+
+    it('Should correctly contribute', async() => {
+      await crowdFunding.contribute({value: 200});
+      await crowdFunding.contribute({value: 300});
+
+      expect(
+        (await crowdFunding.contributors(admin.address)).toNumber()
+      ).to.be.equal(
+        500
+      );
+
+      expect(
+        (await crowdFunding.raisedAmount()).toNumber()
+      ).to.be.equal(
+        500
+      )
+
+      expect(
+        (await crowdFunding.noOfContributors()).toNumber()
+      ).to.be.equal(
+        1
+      )
+    });
+
+    it('Should emit ContributeEvent', async() => {
+      await expect(
+        crowdFunding.contribute({value: 600})
+      ).to.emit(
+        crowdFunding, 'ContributeEvent'
+      ).withArgs(
+        admin.address, 600
+      );
+    });
+  });
 });
